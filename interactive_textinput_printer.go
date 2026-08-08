@@ -28,12 +28,14 @@ type InteractiveTextInputPrinter struct {
 	MultiLine       bool
 	Mask            string
 	OnInterruptFunc func()
+	OnValidateFunc  func(s string) error
 
 	input         []string
 	cursorXPos    int
 	cursorYPos    int
 	text          string
 	startedTyping bool
+	errValidate   error
 }
 
 // WithDefaultText sets the default text.
@@ -69,6 +71,12 @@ func (p InteractiveTextInputPrinter) WithMask(mask string) *InteractiveTextInput
 // WithOnInterruptFunc sets the function to execute on exit of the input reader
 func (p InteractiveTextInputPrinter) WithOnInterruptFunc(exitFunc func()) *InteractiveTextInputPrinter {
 	p.OnInterruptFunc = exitFunc
+	return &p
+}
+
+// WithOnInterruptFunc sets the function to execute after sumbit input
+func (p InteractiveTextInputPrinter) WithOnValidateFunc(validFunc func(s string) error) *InteractiveTextInputPrinter {
+	p.OnValidateFunc = validFunc
 	return &p
 }
 
@@ -123,10 +131,21 @@ func (p InteractiveTextInputPrinter) Show(text ...string) (string, error) {
 		}
 
 		switch key.Code {
+		default:
+			p.errValidate = nil
 		case keys.Tab:
 			if p.MultiLine {
 				area.Bottom()
-				return true, nil
+
+				if p.OnValidateFunc == nil {
+					return true, nil
+				}
+				p.errValidate = p.OnValidateFunc(strings.Join(p.input, "\n"))
+				if p.errValidate == nil {
+					p.updateArea(&area)
+					return true, nil
+				}
+
 			}
 
 		case keys.Enter:
@@ -277,19 +296,7 @@ func (p InteractiveTextInputPrinter) Show(text ...string) (string, error) {
 	// Add new line
 	Println()
 
-	for i, s := range p.input {
-		if i < len(p.input)-1 {
-			areaText += s + "\n"
-		} else {
-			areaText += s
-		}
-	}
-
-	if !p.startedTyping {
-		return p.DefaultValue, nil
-	}
-
-	return strings.ReplaceAll(areaText, p.text, ""), nil
+	return strings.Join(p.input, "\n"), nil
 }
 
 func (p InteractiveTextInputPrinter) updateArea(area *cursor.Area) string {
@@ -299,12 +306,12 @@ func (p InteractiveTextInputPrinter) updateArea(area *cursor.Area) string {
 
 	areaText := p.text
 
-	for i, s := range p.input {
-		if i < len(p.input)-1 {
-			areaText += s + "\n"
-		} else {
-			areaText += s
-		}
+	for _, s := range p.input {
+		areaText += s + "\n"
+	}
+
+	if err := p.errValidate; err != nil {
+		areaText += Error.Sprint(err)
 	}
 
 	if p.Mask != "" {
