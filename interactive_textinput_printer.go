@@ -313,9 +313,7 @@ func (p InteractiveTextInputPrinter) updateArea(area *cursor.Area) string {
 
 	areaText := p.text
 
-	for _, s := range p.input {
-		areaText += s + "\n"
-	}
+	areaText += strings.Join(p.input, "\n") + "\n"
 
 	if err := p.errValidate; err != nil {
 		areaText += Error.Sprint(err)
@@ -331,7 +329,7 @@ func (p InteractiveTextInputPrinter) updateArea(area *cursor.Area) string {
 
 	area.Update(areaText)
 	area.Top()
-	area.Down(p.cursorYPos + 1)
+	area.Down(p.cursorYPos)
 	area.StartOfLine()
 
 	if p.MultiLine {
