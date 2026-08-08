@@ -174,7 +174,14 @@ func (p InteractiveTextInputPrinter) Show(text ...string) (string, error) {
 
 				cursor.StartOfLine()
 			} else {
-				return true, nil
+				if p.OnValidateFunc == nil {
+					return true, nil
+				}
+				p.errValidate = p.OnValidateFunc(strings.Join(p.input, "\n"))
+				if p.errValidate == nil {
+					p.updateArea(&area)
+					return true, nil
+				}
 			}
 
 		case keys.RuneKey:
