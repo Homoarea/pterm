@@ -337,7 +337,7 @@ func (p InteractiveTextInputPrinter) updateArea(area *cursor.Area) string {
 	if p.MultiLine {
 		cursor.Right(internal.GetStringMaxWidth(p.input[p.cursorYPos]) + p.cursorXPos)
 	} else {
-		cursor.Right(internal.GetStringMaxWidth(areaText) + p.cursorXPos)
+		cursor.Right(internal.GetStringMaxWidth(p.text+strings.Join(p.input, "\n")) + p.cursorXPos)
 	}
 
 	return areaText
